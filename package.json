@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "iMovies - Complete Full-Stack Movie Ticket Booking Web Application",
   "private": true,
+  "type": "module",
   "scripts": {
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
