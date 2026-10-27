@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
-const sampleMovies = [
+export const sampleMovies = [
   {
     title: 'Dune: Part Two',
     description: 'Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.',
@@ -114,7 +114,7 @@ const sampleMovies = [
   },
   {
     title: 'Avatar: Fire and Ash',
-    description: 'The upcoming third installment in James Cameron\'s epic science fiction franchise exploring the aggressive Ash People tribe of Pandora.',
+    description: "The upcoming third installment in James Cameron's epic science fiction franchise exploring the aggressive Ash People tribe of Pandora.",
     genre: ['Sci-Fi', 'Action', 'Fantasy'],
     releaseDate: new Date('2025-12-19'),
     duration: 190,
@@ -171,23 +171,23 @@ const sampleMovies = [
   },
 ];
 
-const sampleTheaters = [
+export const sampleTheaters = [
   {
     name: 'iMovies IMAX Cinema - Grand Central',
     location: '742 Evergreen Plaza, Downtown',
     screenName: 'Screen 1 (Laser IMAX 12-Channel Audio)',
     balconyPrice: 22,
-    balconySeats: 20, // 2 rows x 10 seats
+    balconySeats: 20,
     middlePrice: 16,
-    middleSeats: 30,  // 3 rows x 10 seats
+    middleSeats: 30,
     regularPrice: 12,
-    regularSeats: 30, // 3 rows x 10 seats
+    regularSeats: 30,
     isActive: true,
   },
   {
-    name: 'Starlight Dolby Atmos Multiplex',
-    location: '108 Ocean Drive, West Bay',
-    screenName: 'Auditorium 3 (Dolby Cinema)',
+    name: 'Dolby Cinema at Sunset Galleria',
+    location: '1200 Sunset Strip, Westside',
+    screenName: 'Auditorium A (Dolby Atmos & Vision)',
     balconyPrice: 20,
     balconySeats: 20,
     middlePrice: 15,
@@ -222,7 +222,6 @@ const sampleTheaters = [
   },
 ];
 
-// Helper to format date YYYY-MM-DD
 const formatDate = (date) => {
   const d = new Date(date);
   const month = `${d.getMonth() + 1}`.padStart(2, '0');
@@ -230,16 +229,23 @@ const formatDate = (date) => {
   return `${d.getFullYear()}-${month}-${day}`;
 };
 
-const seedDatabase = async () => {
+export const seedDatabase = async (alreadyConnected = false) => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/imovies';
-    console.log(`Connecting to MongoDB at: ${mongoUri}`);
-    await mongoose.connect(mongoUri);
-    console.log('MongoDB Connected successfully.');
+    if (!alreadyConnected) {
+      const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/imovies';
+      console.log(`Connecting to MongoDB at: ${mongoUri}`);
+      await mongoose.connect(mongoUri);
+      console.log('MongoDB Connected successfully.');
+    }
 
-    // Drop existing database to clear out old indexes cleanly
-    console.log('Dropping existing database and indexes...');
-    await mongoose.connection.dropDatabase();
+    console.log('Clearing existing collections...');
+    await User.deleteMany({});
+    await Movie.deleteMany({});
+    await Theater.deleteMany({});
+    await Show.deleteMany({});
+    await Booking.deleteMany({});
+    await Payment.deleteMany({});
+    await Favorite.deleteMany({});
 
     // 1. Seed Users
     console.log('Seeding Users...');
@@ -291,15 +297,12 @@ const seedDatabase = async () => {
     const showTimes = ['10:30 AM', '02:15 PM', '06:30 PM', '09:45 PM'];
 
     const showsToCreate = [];
-
-    // Create scheduled shows for the now-showing movies
     const nowShowingMovies = createdMovies.filter((m) => m.status === 'Now Showing');
 
     for (const movie of nowShowingMovies) {
       for (const theater of createdTheaters) {
         for (const date of dates) {
-          // Schedule 2-3 showtimes per day per theater
-          const selectedTimes = [showTimes[0], showTimes[2]]; // 10:30 AM and 06:30 PM
+          const selectedTimes = [showTimes[0], showTimes[2]];
           for (const time of selectedTimes) {
             showsToCreate.push({
               movie: movie._id,
@@ -322,7 +325,7 @@ const seedDatabase = async () => {
     const createdShows = await Show.insertMany(showsToCreate);
     console.log(`Inserted ${createdShows.length} scheduled shows.`);
 
-    // 5. Seed a few realistic Bookings and Payments
+    // 5. Seed Bookings
     console.log('Seeding Initial Bookings & Payments...');
     const show1 = createdShows[0];
     const show2 = createdShows[1];
@@ -330,7 +333,6 @@ const seedDatabase = async () => {
     const seatsBooked1 = ['B-A3', 'B-A4'];
     const seatsBooked2 = ['M-C5', 'M-C6', 'M-C7'];
 
-    // Update booked seats on the shows
     show1.bookedSeats = seatsBooked1;
     await show1.save();
 
@@ -421,12 +423,19 @@ const seedDatabase = async () => {
     console.log('Admin Login: admin@imovies.com / Admin@12345');
     console.log('User Login:  alex@example.com / User@12345');
     console.log('----------------------------------------------------');
-
-    process.exit(0);
   } catch (error) {
     console.error('Seeding error:', error);
-    process.exit(1);
+    throw error;
   }
 };
 
-seedDatabase();
+const isDirectRun = process.argv[1] && (
+  process.argv[1].endsWith('seed.js') || 
+  process.argv[1].endsWith('seed')
+);
+
+if (isDirectRun) {
+  seedDatabase(false)
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
