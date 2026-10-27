@@ -1,0 +1,15 @@
+{
+  "name": "imovies",
+  "version": "1.0.0",
+  "description": "iMovies - Complete Full-Stack Movie Ticket Booking Web Application",
+  "private": true,
+  "scripts": {
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "node scripts/dev.js",
+    "seed": "npm run seed --prefix server",
+    "build": "npm run build --prefix client",
+    "install:all": "node scripts/install-all.js"
+  },
+  "devDependencies": {}
+}
